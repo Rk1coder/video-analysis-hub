@@ -1,0 +1,28 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+.env.*
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# Model weights (büyük dosyalar — HF Hub'dan çekilir)
+*.safetensors
+*.bin
+*.pt
+*.ckpt
+models/weights/
+
+# Temp frames / outputs
+/tmp/
+vah_frames_*/
+outputs/
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp

@@ -1,16 +1,35 @@
-version: "3.9"
-
 services:
-  # ── vLLM inference server ─────────────────────────────────────────────────
-  vllm:
-    image: vllm/vllm-openai:latest
-    command: >
-      --model ${GEMMA_MODEL:-google/gemma-3-4b-it}
-      --dtype bfloat16
-      --max-model-len 8192
-      --trust-remote-code
+  api:
+    build: .
     environment:
-      HUGGING_FACE_HUB_TOKEN: ${HF_TOKEN:-}
+      HF_HOME: /cache/huggingface
+      VLLM_ENDPOINT: ${VLLM_ENDPOINT:-}
+      GEMMA_MODEL: ${GEMMA_MODEL:-google/gemma-3-4b-it}
+    ports:
+      - "8000:8000"
+    volumes:
+      - hf_cache:/cache/huggingface
+
+  ui:
+    build: .
+    command: python app.py
+    environment:
+      HF_HOME: /cache/huggingface
+      VLLM_ENDPOINT: ${VLLM_ENDPOINT:-}
+      GEMMA_MODEL: ${GEMMA_MODEL:-google/gemma-3-4b-it}
+    ports:
+      - "7860:7860"
+    volumes:
+      - hf_cache:/cache/huggingface
+
+  # Optional: requires an NVIDIA GPU, model access and an HF_TOKEN.
+  # VLLM_ENDPOINT=http://vllm:8000 docker compose --profile gpu up --build
+  vllm:
+    profiles: ["gpu"]
+    image: vllm/vllm-openai:v0.11.0
+    command: --model ${GEMMA_MODEL:-google/gemma-3-4b-it} --dtype auto --max-model-len 8192
+    environment:
+      HF_TOKEN: ${HF_TOKEN:-}
     ports:
       - "8001:8000"
     deploy:
@@ -22,45 +41,6 @@ services:
               capabilities: [gpu]
     volumes:
       - hf_cache:/root/.cache/huggingface
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      retries: 5
-
-  # ── FastAPI backend ───────────────────────────────────────────────────────
-  api:
-    build: .
-    command: uvicorn server:app --host 0.0.0.0 --port 8000 --workers 1
-    environment:
-      VLLM_ENDPOINT: http://vllm:8000
-      GEMMA_MODEL: ${GEMMA_MODEL:-google/gemma-3-4b-it}
-      FRAME_INTERVAL_SEC: ${FRAME_INTERVAL_SEC:-2.0}
-      HF_TOKEN: ${HF_TOKEN:-}
-    ports:
-      - "8000:8000"
-    depends_on:
-      vllm:
-        condition: service_healthy
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
-    volumes:
-      - ./examples:/app/examples:ro
-
-  # ── Gradio UI ─────────────────────────────────────────────────────────────
-  ui:
-    build: .
-    command: python app.py
-    environment:
-      VLLM_ENDPOINT: http://vllm:8000
-    ports:
-      - "7860:7860"
-    depends_on:
-      - api
 
 volumes:
   hf_cache:

@@ -26,3 +26,6 @@ outputs/
 .vscode/
 .idea/
 *.swp
+.pytest_cache/
+.ruff_cache/
+examples/*-sample.avi

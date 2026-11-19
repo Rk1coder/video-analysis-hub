@@ -2,9 +2,11 @@
 
 > GPU-accelerated video & image analysis platform — powered by SAM3, Gemma 4, and InternVideo2.
 
-[![HuggingFace Space](https://img.shields.io/badge/🤗%20HuggingFace-Space-yellow)](https://huggingface.co/spaces/YOUR_USERNAME/video-analysis-hub)
+[![HuggingFace Space](https://img.shields.io/badge/🤗%20HuggingFace-Space-yellow)](https://huggingface.co/spaces/rabitrabi/video-analysis-hub)
 [![Docker](https://img.shields.io/badge/Docker-GPU%20Ready-2496ED?logo=docker)](https://hub.docker.com)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
+
+[Hugging Face Space](https://huggingface.co/spaces/rabitrabi/video-analysis-hub) · [GitHub kaynak kodu](https://github.com/Rk1coder/video-analysis-hub) · [Geri bildirim](https://huggingface.co/spaces/rabitrabi/video-analysis-hub/discussions) · [Geliştirici profili](https://huggingface.co/rabitrabi)
 
 ---
 
@@ -49,7 +51,7 @@ video-analysis-hub/              ← GitHub (single source)
 
 ### 🤗 HuggingFace Space (tarayıcıdan dene)
 
-[space linkine git] → video/görsel yükle → analiz et.
+[Video Analysis Hub Space’ini aç](https://huggingface.co/spaces/rabitrabi/video-analysis-hub) → video/görsel yükle → analiz et.
 
 ### 🐳 Docker (lokal GPU)
 
@@ -103,3 +105,4 @@ HF_TOKEN: ""                # private model için
 ## Lisans
 
 MIT — bkz. [LICENSE](LICENSE)
+

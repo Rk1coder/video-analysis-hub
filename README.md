@@ -1,108 +1,97 @@
-# 🎯 Video Analysis Hub
-
-> GPU-accelerated video & image analysis platform — powered by SAM3, Gemma 4, and InternVideo2.
-
-[![HuggingFace Space](https://img.shields.io/badge/🤗%20HuggingFace-Space-yellow)](https://huggingface.co/spaces/rabitrabi/video-analysis-hub)
-[![Docker](https://img.shields.io/badge/Docker-GPU%20Ready-2496ED?logo=docker)](https://hub.docker.com)
-[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
-
-[Hugging Face Space](https://huggingface.co/spaces/rabitrabi/video-analysis-hub) · [GitHub kaynak kodu](https://github.com/Rk1coder/video-analysis-hub) · [Geri bildirim](https://huggingface.co/spaces/rabitrabi/video-analysis-hub/discussions) · [Geliştirici profili](https://huggingface.co/rabitrabi)
-
+---
+title: Video Analysis Hub
+emoji: 🎯
+colorFrom: blue
+colorTo: indigo
+sdk: gradio
+sdk_version: 6.11.0
+python_version: "3.12"
+app_file: app.py
+pinned: true
+license: mit
+models:
+- hustvl/yolos-tiny
+short_description: CPU object detection, annotated previews and JSON reports.
 ---
 
-## Architecture
+# Video Analysis Hub
 
-```
-video-analysis-hub/              ← GitHub (single source)
-│
-├── models/                      ← Model scriptleri (her biri bağımsız modül)
-│   ├── base_analyzer.py         ← Abstract base class
-│   ├── sam3_analyzer.py         ← SAM3 segmentation
-│   ├── gemma2_analyzer.py       ← Gemma2 vision
-│   ├── gemma3_analyzer.py       ← Gemma3 / Gemma4 vision (vLLM)
-│   └── internvideo.py           ← InternVideo2 action recognition
-│
-├── utils/
-│   └── video_utils.py           ← Frame extraction, codec helpers
-│
-├── app.py                       ← Gradio UI (HF Space entry point)
-├── server.py                    ← FastAPI backend (Docker mode)
-├── requirements.txt             ← HF Space dependencies
-├── requirements-local.txt       ← Docker/lokal dependencies (CUDA)
-├── docker-compose.yml
-├── Dockerfile
-├── examples/                    ← Demo videolar / görseller
-└── .github/workflows/
-    └── sync.yml                 ← GitHub → HF Space auto-sync
-```
+Upload an image or video, detect objects, inspect the annotated frames and download a JSON report. The default path runs a real, open [YOLOS Tiny detector](https://huggingface.co/hustvl/yolos-tiny) on CPU, without an API key, a separate inference service or a GPU.
 
-**İki deployment modu:**
+[Open Hugging Face app](https://huggingface.co/spaces/rabitrabi/video-analysis-hub) · [GitHub source](https://github.com/Rk1coder/video-analysis-hub) · [Feedback](https://huggingface.co/spaces/rabitrabi/video-analysis-hub/discussions)
 
-| | HuggingFace Space | Docker Lokal |
-|---|---|---|
-| GPU | ZeroGPU (paylaşımlı) | Kendi GPU'n (tam kontrol) |
-| Kurulum | Sıfır kurulum | `docker compose up` |
-| Model yükleme | HF Hub'dan otomatik | Lokal `/models` mount |
-| API | — | FastAPI `/process-*` endpoint'leri |
+## Try it
 
----
+1. Upload a JPG, PNG, WebP, MP4, AVI, MOV, MKV or WebM file, up to 20 MB.
+2. Leave the class filter empty to detect all COCO classes, or enter English labels such as `car, person`.
+3. Adjust confidence and the video frame limit, then click **Analiz Et**.
+4. Review the image/contact sheet and download the JSON report.
 
-## Hızlı Başlangıç
+The first inference downloads the model weights. Videos sample up to 16 frames across the clip (8 by default). Results include labels, confidence, bounding boxes, timestamps and elapsed time. Images and sampled frames are resized to fit 1280×1280; returned coordinates refer to the reported `frame_sizes`.
 
-### 🤗 HuggingFace Space (tarayıcıdan dene)
+**Video counts are detection occurrences across sampled frames, not unique tracked objects.** Brief events between sampled frames may be missed. COCO classes do not cover arbitrary specialist objects, and this small detector is a working baseline rather than a research benchmark.
 
-[Video Analysis Hub Space’ini aç](https://huggingface.co/spaces/rabitrabi/video-analysis-hub) → video/görsel yükle → analiz et.
+## Run locally
 
-### 🐳 Docker (lokal GPU)
+Use Python 3.12:
 
 ```bash
-git clone https://github.com/Rk1coder/video-analysis-hub.git
-cd video-analysis-hub
-
-# GPU destekli tam kurulum
-docker compose up --build
-
-# Arayüz: http://localhost:7860
-# API:     http://localhost:8000
-```
-
-### 🐍 Manuel kurulum
-
-```bash
-pip install -r requirements-local.txt
-
-# Gradio UI
+python3.12 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
 python app.py
-
-# veya FastAPI backend
-uvicorn server:app --host 0.0.0.0 --port 8000
 ```
 
----
+On Windows, activate with `.venv\Scripts\Activate.ps1` instead. Open [localhost:7860](http://localhost:7860).
 
-## Modeller
+Start the API in another terminal:
 
-| Model | Görev | VRAM |
-|---|---|---|
-| **SAM3** | Video segmentation | ~8 GB |
-| **Gemma3 / Gemma4** | Vision QA, detection (vLLM) | ~12 GB |
-| **InternVideo2** | Action recognition | ~10 GB |
-
----
-
-## Konfigürasyon
-
-`docker-compose.yml` içinde ortam değişkenleri:
-
-```yaml
-ACTIVE_MODEL: gemma3        # sam3 | gemma2 | gemma3 | internvideo
-VLLM_ENDPOINT: http://vllm:8000
-HF_TOKEN: ""                # private model için
+```bash
+uvicorn server:app --host 127.0.0.1 --port 8000
+curl http://127.0.0.1:8000/health
+curl -F file=@/path/to/your/image.jpg -F prompt=cat http://127.0.0.1:8000/analyze
 ```
 
----
+The response contains `session_id`. Download that result from `GET /download/{session_id}`. Results are retained in memory for up to one hour, with a 128-result cap; restarting the API clears them. Temporary API uploads are removed on success and failure. [Interactive API docs](http://localhost:8000/docs).
 
-## Lisans
+## Docker
 
-MIT — bkz. [LICENSE](LICENSE)
+```bash
+docker compose up --build
+```
+
+Default services run on CPU: UI on 7860 and API on 8000. Model downloads use a shared cache.
+
+## Optional Gemma service
+
+If you already operate a compatible vision-language model server, set `VLLM_ENDPOINT` and optionally `GEMMA_MODEL` before starting the app. The UI then offers `gemma3`; the prompt becomes a question for that server.
+
+The optional GPU Compose profile requires an NVIDIA GPU and access to the selected model:
+
+```bash
+VLLM_ENDPOINT=http://vllm:8000 docker compose --profile gpu up --build
+```
+
+The legacy `/process-image-gemma` and `/process-video-gemma` routes remain available. Missing services return actionable errors. Gemma inference and the historical SAM3/InternVideo modules under `models/` need their own validated hardware/model setup; they are not advertised as verified CPU capabilities.
+
+## Verify and contribute
+
+```bash
+python -m pip install -r requirements-dev.txt
+python -m pytest -q
+ruff check analysis.py app.py server.py tests
+```
+
+The tests cover file handling, invalid inputs, bounded frame sampling, preview generation, API errors, upload cleanup and matching JSON downloads. They isolate only external inference; real model smoke-test evidence is reported separately.
+
+GitHub Actions runs these checks before syncing the runtime to Hugging Face. Set the repository secret `HF_TOKEN` with write access to the Space to enable deployment. The sync uploads files through the Hub API and preserves Space history.
+
+## Related work
+
+- [TopoEKF: tracking, adaptive EKF and trajectory anomaly detection](https://github.com/Rk1coder/TopoEKF)
+- [SAM3 Auto Dataset Factory: assisted annotation, review and YOLO export](https://github.com/Rk1coder/sam3-auto-dataset-factory)
+- [Rabia on GitHub](https://github.com/Rk1coder) · [Rabia on Hugging Face](https://huggingface.co/rabitrabi)
+
+Example image: [COCO sample used in the Hugging Face documentation](https://huggingface.co/datasets/huggingface/documentation-images/blob/main/coco_sample.png).
+Application code: MIT. YOLOS Tiny weights: Apache 2.0; see the linked model card.
 
